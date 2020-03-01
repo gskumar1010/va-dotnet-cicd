@@ -41,7 +41,7 @@ metadata:
   name: mssql-db
 spec:
   selector:
-    app: mssql-db
+    app: mssql
   ports:
     - protocol: TCP
       port: 1433

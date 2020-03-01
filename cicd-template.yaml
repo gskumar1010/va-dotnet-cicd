@@ -150,7 +150,7 @@ objects:
                 }
 
                 stage('Scan Codebase/Code Analysis') {
-                  agent { label 'sonar-dotnet' }
+                  agent { label 'sonarqube' }
                   steps {
                       git branch: 'master', url: 'http://gogs:3000/gogs/sample-db-conn.git'
                       sh "dotnet sonarscanner begin /k:va-dotnet-project /d:sonar.host.url=http://sonarqube:9000"
@@ -173,9 +173,7 @@ objects:
 
 
                 stage('Promote to STAGE?') {
-                  agent {
-                    label 'skopeo'
-                  }
+                 
                   steps {
                     timeout(time:15, unit:'MINUTES') {
                         input message: "Promote to STAGE?", ok: "Promote"
@@ -195,14 +193,7 @@ objects:
                     script {
                       openshift.withCluster() {
                         openshift.withProject(env.STAGE_PROJECT) {
-                          if (openshift.selector('dc', 'va-dotnet-project').exists()) {
-                            openshift.selector('dc', 'va-dotnet-project').delete()
-                            openshift.selector('svc', 'va-dotnet-project').delete()
-                            openshift.selector('route', 'va-dotnet-project').delete()
-                          }
-                          openshift.newApp("va-dotnet-project:${version}").narrow("svc").expose()
-                          openshift.set("probe dc/va-dotnet-project --readiness --get-url=http://:8080/actuator/health --initial-delay-seconds=30 --failure-threshold=10 --period-seconds=10")
-                          openshift.set("probe dc/va-dotnet-project --liveness  --get-url=http://:8080/actuator/health --initial-delay-seconds=180 --failure-threshold=10 --period-seconds=10")
+                          openshift.selector("dc", "va-dotnet-project").rollout().latest();
                         }
                       }
                     }
@@ -315,76 +306,7 @@ objects:
         <imagePullSecrets/>
         <nodeProperties/>
       </org.csanchez.jenkins.plugins.kubernetes.PodTemplate>
-    maven-template: |-
-      <org.csanchez.jenkins.plugins.kubernetes.PodTemplate>
-        <inheritFrom></inheritFrom>
-        <name>maven</name>
-        <privileged>false</privileged>
-        <alwaysPullImage>false</alwaysPullImage>
-        <instanceCap>2147483647</instanceCap>
-        <idleMinutes>0</idleMinutes>
-        <label>maven</label>
-        <serviceAccount>jenkins</serviceAccount>
-        <nodeSelector></nodeSelector>
-        <customWorkspaceVolumeEnabled>false</customWorkspaceVolumeEnabled>
-        <workspaceVolume class="org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.EmptyDirWorkspaceVolume">
-          <memory>false</memory>
-        </workspaceVolume>
-        <volumes />
-        <containers>
-          <org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate>
-            <name>jnlp</name>
-            <image>openshift/jenkins-agent-maven-35-centos7</image>
-            <privileged>false</privileged>
-            <alwaysPullImage>false</alwaysPullImage>
-            <workingDir>/tmp</workingDir>
-            <command></command>
-            <args>${computer.jnlpmac} ${computer.name}</args>
-            <ttyEnabled>false</ttyEnabled>
-            <resourceRequestCpu>200m</resourceRequestCpu>
-            <resourceRequestMemory>512Mi</resourceRequestMemory>
-            <resourceLimitCpu>2</resourceLimitCpu>
-            <resourceLimitMemory>4Gi</resourceLimitMemory>
-            <envVars/>
-          </org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate>
-        </containers>
-        <envVars/>
-        <annotations/>
-        <imagePullSecrets/>
-      </org.csanchez.jenkins.plugins.kubernetes.PodTemplate>
-    skopeo-template: |-
-      <org.csanchez.jenkins.plugins.kubernetes.PodTemplate>
-        <inheritFrom></inheritFrom>
-        <name>skopeo</name>
-        <privileged>false</privileged>
-        <alwaysPullImage>false</alwaysPullImage>
-        <instanceCap>2147483647</instanceCap>
-        <idleMinutes>0</idleMinutes>
-        <label>skopeo</label>
-        <serviceAccount>jenkins</serviceAccount>
-        <nodeSelector></nodeSelector>
-        <customWorkspaceVolumeEnabled>false</customWorkspaceVolumeEnabled>
-        <workspaceVolume class="org.csanchez.jenkins.plugins.kubernetes.volumes.workspace.EmptyDirWorkspaceVolume">
-          <memory>false</memory>
-        </workspaceVolume>
-        <volumes />
-        <containers>
-          <org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate>
-            <name>jnlp</name>
-            <image>docker.io/siamaksade/jenkins-slave-skopeo-centos7</image>
-            <privileged>false</privileged>
-            <alwaysPullImage>false</alwaysPullImage>
-            <workingDir>/tmp</workingDir>
-            <command></command>
-            <args>${computer.jnlpmac} ${computer.name}</args>
-            <ttyEnabled>false</ttyEnabled>
-            <envVars/>
-          </org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate>
-        </containers>
-        <envVars/>
-        <annotations/>
-        <imagePullSecrets/>
-      </org.csanchez.jenkins.plugins.kubernetes.PodTemplate>
+
 # Setup Demo
 - apiVersion: batch/v1
   kind: Job
