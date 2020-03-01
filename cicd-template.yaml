@@ -463,7 +463,7 @@ objects:
 
             cat <<EOF > /tmp/data.json
             {
-              "clone_addr": "https://github.com/vsrn09/sample-db-conn.git",
+              "clone_addr": "https://github.com/gskumar1010/sample-db-conn.git",
               "uid": 1,
               "repo_name": "sample-db-conn"
             }
